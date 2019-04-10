@@ -294,17 +294,22 @@ namespace SSD_Components
 		std::list<NVM_Transaction*>* evicted_cache_slots = new std::list<NVM_Transaction*>;
 		std::list<NVM_Transaction*> writeback_transactions;
 		auto it = user_request->Transaction_list.begin();
-
+		
 		int queue_id = user_request->Stream_id;
 		if (shared_dram_request_queue)
 			queue_id = 0;
-
+		int indexnum = 1;
 		while (it != user_request->Transaction_list.end() 
 			&& (back_pressure_buffer_depth[queue_id] + cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors) < back_pressure_buffer_max_depth)
 		{
 			NVM_Transaction_Flash_WR* tr = (NVM_Transaction_Flash_WR*)(*it);
+			std::cout << indexnum << std::endl;
+			indexnum++;
+			std::cout << tr->LPA << std::endl;
+			std::cout << tr->Stream_id << std::endl;
 			if (per_stream_cache[tr->Stream_id]->Exists(tr->Stream_id, tr->LPA))//If the logical address already exists in the cache
 			{
+				//cachehit
 				/*MQSim should get rid of writting stale data to the cache.
 				* This situation may result from out-of-order transaction execution*/
 				Data_Cache_Slot_Type slot = per_stream_cache[tr->Stream_id]->Get_slot(tr->Stream_id, tr->LPA);
