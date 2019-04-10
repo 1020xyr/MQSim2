@@ -30,6 +30,12 @@ namespace SSD_Components
 		void Setup_triggers();
 		void Start_simulation();
 		void Validate_simulation_config();
+		//自己定义的一些参数是用来统计cache的命中和miss情况的
+		unsigned int cache_read_hit;
+		unsigned int cache_write_hit;
+		unsigned int cache_read_miss;
+		unsigned int cache_write_miss;
+
 
 		typedef void(*UserRequestServicedSignalHanderType) (User_Request*);
 		void Connect_to_user_request_serviced_signal(UserRequestServicedSignalHanderType);

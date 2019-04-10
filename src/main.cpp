@@ -285,6 +285,21 @@ void collect_results(SSD_Device& ssd, Host_System& host, const char* output_file
 	}
 	//cin.get();
 }
+/*
+功能：输出自己想要的结果进行查看
+
+
+*/
+void collect_mycache(SSD_Device& ssd)
+{
+	auto cache_read_hit = ssd.Cache_manager->cache_read_hit;
+	auto cache_read_miss = ssd.Cache_manager->cache_read_miss;
+	auto cache_write_hit = ssd.Cache_manager->cache_write_hit;
+	auto cache_write_miss = ssd.Cache_manager->cache_write_miss;
+	cout << "cache_write_hit=" << cache_write_hit << endl;
+	cout << "cache_write_miss=" << cache_write_miss << endl;
+
+}
 
 void print_help()
 {
@@ -343,6 +358,7 @@ int main(int argc, char* argv[])
 
 		PRINT_MESSAGE("Writing results to output file .......");
 		collect_results(ssd, host, (workload_defs_file_path.substr(0, workload_defs_file_path.find_last_of(".")) + "_scenario_" + std::to_string(cntr) + ".xml").c_str());
+		collect_mycache(ssd);
 	}
 
 	cin.get();

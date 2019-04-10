@@ -298,15 +298,15 @@ namespace SSD_Components
 		int queue_id = user_request->Stream_id;
 		if (shared_dram_request_queue)
 			queue_id = 0;
-		int indexnum = 1;
+		//int indexnum = 1;
 		while (it != user_request->Transaction_list.end() 
 			&& (back_pressure_buffer_depth[queue_id] + cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors) < back_pressure_buffer_max_depth)
 		{
 			NVM_Transaction_Flash_WR* tr = (NVM_Transaction_Flash_WR*)(*it);
-			std::cout << indexnum << std::endl;
-			indexnum++;
-			std::cout << tr->LPA << std::endl;
-			std::cout << tr->Stream_id << std::endl;
+			//std::cout << indexnum << std::endl;
+			//indexnum++;
+			//std::cout << tr->LPA << std::endl;
+			//std::cout << tr->Stream_id << std::endl;
 			if (per_stream_cache[tr->Stream_id]->Exists(tr->Stream_id, tr->LPA))//If the logical address already exists in the cache
 			{
 				//cachehit
@@ -316,6 +316,9 @@ namespace SSD_Components
 				sim_time_type timestamp = slot.Timestamp;
 				NVM::memory_content_type content = slot.Content;
 				//Data_Cache_counter.data_cache_write_hit++;
+				Data_Cache_Manager_Base::cache_write_hit++;
+
+				
 				if (tr->DataTimeStamp > timestamp)
 				{
 					timestamp = tr->DataTimeStamp;
@@ -325,8 +328,11 @@ namespace SSD_Components
 			}
 			else//the logical address is not in the cache
 			{
+				Data_Cache_Manager_Base::cache_write_miss++;
+				//std::cout << Data_Cache_Manager_Base::cache_write_miss << std::endl;
 				if (!per_stream_cache[tr->Stream_id]->Check_free_slot_availability())
 				{
+					//evict one slot
 					Data_Cache_Slot_Type evicted_slot = per_stream_cache[tr->Stream_id]->Evict_one_slot_lru();
 					if (evicted_slot.Status == Cache_Slot_Status::DIRTY_NO_FLASH_WRITEBACK)
 					{

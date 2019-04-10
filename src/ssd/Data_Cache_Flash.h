@@ -35,14 +35,7 @@ namespace SSD_Components
 		Data_Cache_Simulation_Event_Type next_event_type;
 		stream_id_type Stream_id;
 	};
-	struct HitStruct
-	{
-		int readhit;
-		int readmiss;
-		int writehit;
-		int writemiss;
 
-	};
 	class Data_Cache_Flash
 	{
 	public:
@@ -53,8 +46,6 @@ namespace SSD_Components
 		bool Check_free_slot_availability(unsigned int no_of_slots);
 		bool Empty();
 		bool Full();
-		//add some myself
-		HitStruct cachehit;
 		Data_Cache_Slot_Type Get_slot(const stream_id_type stream_id, const LPA_type lpn);
 		Data_Cache_Slot_Type Evict_one_dirty_slot();
 		Data_Cache_Slot_Type Evict_one_slot_lru();
