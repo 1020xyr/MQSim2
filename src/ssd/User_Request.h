@@ -17,7 +17,7 @@ namespace SSD_Components
 	public:
 		User_Request();
 		IO_Flow_Priority_Class Priority_class;
-		io_request_id_type ID;
+		io_request_id_type ID;//×Ö·û´®ÀàÐÍ
 		LHA_type Start_LBA;
 
 		sim_time_type STAT_InitiationTime;
@@ -27,7 +27,7 @@ namespace SSD_Components
 
 		unsigned int Size_in_byte;
 		unsigned int SizeInSectors;
-		UserRequestType Type;
+		UserRequestType Type;//¶Á¡¢Ð´
 		stream_id_type Stream_id;
 		bool ToBeIgnored;
 		void* IO_command_info;//used to store host I/O command info

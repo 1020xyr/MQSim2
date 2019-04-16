@@ -221,10 +221,24 @@ namespace SSD_Components
 			case Caching_Mode::READ_CACHE:
 			case Caching_Mode::WRITE_READ_CACHE:
 			{
+				/*
+				增加预取的代码：
+				主要的想法是在当前的请求下面增加Transaction_list内容。
+
+				
+				*/
+				//auto Transaction_pre = 
+				//auto pre=user_request->Transaction_list.back();
+				//Transaction_pre->UserIORequest->;
+				//NVM_Transaction_Flash_RD* Transaction_pre = (NVM_Transaction_Flash_RD*)(*pre)
+				
+				//user_request->Transaction_list.push_back(Transaction_pre);
+				
 				std::list<NVM_Transaction*>::iterator it = user_request->Transaction_list.begin();
 				while (it != user_request->Transaction_list.end())
 				{
 					NVM_Transaction_Flash_RD* tr = (NVM_Transaction_Flash_RD*)(*it);
+					std::cout << tr->LPA << std::endl;
 					if (per_stream_cache[tr->Stream_id]->Exists(tr->Stream_id, tr->LPA))//逻辑地址存在cache中
 					{
 						page_status_type available_sectors_bitmap = per_stream_cache[tr->Stream_id]->Get_slot(tr->Stream_id, tr->LPA).State_bitmap_of_existing_sectors & tr->read_sectors_bitmap;
@@ -234,10 +248,10 @@ namespace SSD_Components
 							user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(tr->read_sectors_bitmap);
 							user_request->Transaction_list.erase(it++);//the ++ operation should happen here, otherwise the iterator will be part of the list after erasing it from the list
 						}
-						else if (available_sectors_bitmap != 0)//局部命中
+						else if (available_sectors_bitmap != 0)//局部命中，其中1表示局部命中的部分
 						{
 							user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(available_sectors_bitmap);
-							tr->read_sectors_bitmap = (tr->read_sectors_bitmap & ~available_sectors_bitmap);
+							tr->read_sectors_bitmap = (tr->read_sectors_bitmap & ~available_sectors_bitmap);//将局部名字的扇区置0，表示不用读取
 							tr->Data_and_metadata_size_in_byte -= count_sector_no_from_status_bitmap(available_sectors_bitmap) * SECTOR_SIZE_IN_BYTE;
 							it++;
 						}
@@ -245,16 +259,16 @@ namespace SSD_Components
 					}
 					else it++;
 				}
-				if (user_request->Sectors_serviced_from_cache > 0)
+				if (user_request->Sectors_serviced_from_cache > 0)//如果如有cache，命中的情况（包括局部和全局的命中）
 				{
 					Memory_Transfer_Info* transfer_info = new Memory_Transfer_Info;
 					transfer_info->Size_in_bytes = user_request->Sectors_serviced_from_cache * SECTOR_SIZE_IN_BYTE;
 					transfer_info->Related_request = user_request;
 					transfer_info->next_event_type = Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_USERIO_FINISHED;
 					transfer_info->Stream_id = user_request->Stream_id;
-					service_dram_access_request(transfer_info);
+					service_dram_access_request(transfer_info);//处理cache的情况
 				}
-				if (user_request->Transaction_list.size() > 0)//读请求导致的数据写会
+				if (user_request->Transaction_list.size() > 0)//只有全命中会减小transaction_list的数目，所以这里是进行nand的读操作
 					static_cast<FTL*>(nvm_firmware)->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(user_request->Transaction_list);
 
 				return;
@@ -295,6 +309,7 @@ namespace SSD_Components
 		std::list<NVM_Transaction*> writeback_transactions;
 		auto it = user_request->Transaction_list.begin();
 		
+		std::cout << user_request->Start_LBA << std::endl;
 		int queue_id = user_request->Stream_id;
 		if (shared_dram_request_queue)
 			queue_id = 0;
@@ -305,7 +320,7 @@ namespace SSD_Components
 			NVM_Transaction_Flash_WR* tr = (NVM_Transaction_Flash_WR*)(*it);
 			//std::cout << indexnum << std::endl;
 			//indexnum++;
-			//std::cout << tr->LPA << std::endl;
+			std::cout << tr->LPA << std::endl;
 			//std::cout << tr->Stream_id << std::endl;
 			if (per_stream_cache[tr->Stream_id]->Exists(tr->Stream_id, tr->LPA))//If the logical address already exists in the cache
 			{
@@ -369,7 +384,7 @@ namespace SSD_Components
 			service_dram_access_request(read_transfer_info);
 		}
 
-		if (dram_write_size_in_sectors)//Issue memory write to write data to DRAM
+		if (dram_write_size_in_sectors)//Issue memory write to write data to DRAM；就是写入到dram中的 数据：使用扇区进行统计
 		{
 			Memory_Transfer_Info* write_transfer_info = new Memory_Transfer_Info;
 			write_transfer_info->Size_in_bytes = dram_write_size_in_sectors * SECTOR_SIZE_IN_BYTE;
@@ -378,7 +393,7 @@ namespace SSD_Components
 			write_transfer_info->Stream_id = user_request->Stream_id;
 			service_dram_access_request(write_transfer_info);
 		}
-
+		//配合之前的bloom_filter来进行使用，就是一定的时间内把写buffer中的数据进行一定的刷回
 		if (writeback_transactions.size() > 0)//If any writeback should be performed, then issue flash write transactions
 			static_cast<FTL*>(nvm_firmware)->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(writeback_transactions);
 		
